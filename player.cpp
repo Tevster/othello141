@@ -42,3 +42,25 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
      */
     return nullptr;
 }
+
+
+/* Minimax outline:
+ * max = -99999
+ * bestMove = null;
+ * for move in posibMoves:
+ *     minSc = minScore(move, 99999, 1)
+ *     if max < minSc:
+ *          max = minSc
+ *          bestMove = move
+ * return bestMove
+ * 
+ * minScore(move, min, depth):
+ * depth = 0
+ * min = 99999
+ * if depth < maxDepth:
+ *     for pmove in posibMoves:
+ *         return minScore(pmove, min, depth+1)
+ * else:
+ *     if score < min:
+ *         return score
+ * 
