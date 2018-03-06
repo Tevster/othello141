@@ -46,6 +46,33 @@ bool Board::onBoard(int x, int y) {
 }
 
 
+int Board::score(Side side, Move *move){
+    // returns score of the move
+    Board *copy = this -> copy();
+    if(copy -> checkMove(move, side))
+        copy -> doMove(move, side); 
+    int score = 0;
+    int x = move -> x;
+    int y = move -> y;
+    if (side == BLACK)
+        score = copy -> countBlack() - copy -> countWhite();
+    else
+        score = copy -> countWhite() - copy -> countBlack();
+
+    if((x + y == 7 && (x == 0 || y == 0)) || x + y == 0 || x + y == 14)
+        score *= 3;
+    else if(x + y == 1 || (x + y == 6 && (x == 0 || y == 0)) ||
+        (x + y == 8 && (x == 1 || y == 1)) || x + y == 13)
+        score *= 0.7;
+    else if((x == 1 && y == 1) || (x == 6 && y == 1) || (x == 1 && y == 6) || (x == 6 && y == 6))
+        score *= 0.5;
+    else if(x == 0 || y == 0 || x == 7 || y == 7)
+        score *= 1.5;
+
+    return score;
+
+}
+
 /*
  * Returns true if the game is finished; false otherwise. The game is finished
  * if neither side has a legal move.

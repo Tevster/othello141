@@ -1,4 +1,5 @@
 #include "player.hpp"
+#include <vector>
 
 /*
  * Constructor for the player; initialize everything here. The side your AI is
@@ -8,7 +9,8 @@
 Player::Player(Side side) {
     // Will be set to true in test_minimax.cpp.
     testingMinimax = false;
-
+    board = new Board();
+    playerside = side;
     /*
      * TODO: Do any initialization you need to do here (setting up the board,
      * precalculating things, etc.) However, remember that you will only have
@@ -40,5 +42,41 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
      * TODO: Implement how moves your AI should play here. You should first
      * process the opponent's opponents move before calculating your own move
      */
+
+	// TODO: ADD TIMER
+	std::vector<Move *> validmoves;
+	int bestmovevalue = -64;
+	int bestindex;
+
+	if(opponentsMove != nullptr){
+		if(playerside == BLACK){
+			board -> doMove(opponentsMove, WHITE);
+		}
+		else
+			board -> doMove(opponentsMove, BLACK);
+	}
+
+	for(int x = 0; x < 8; x++){
+		for(int y = 0; y < 8; y++){
+			Move *possiblemove = new Move(x, y);
+			if(board -> checkMove(possiblemove, playerside)){
+				validmoves.push_back(possiblemove);
+			}
+		}
+	}
+
+	if(validmoves.size() > 0){
+		for(unsigned int i = 0; i < validmoves.size(); i++){
+			Move *aruberuto = validmoves[i];
+			if(board -> score(playerside, aruberuto) > bestmovevalue){
+				bestmovevalue = board -> score(playerside, aruberuto);
+				bestindex = i;
+			}
+		}
+		Move *bestmove = validmoves[bestindex];
+		board -> doMove(bestmove, playerside);
+		return bestmove;
+	}
+
     return nullptr;
 }
