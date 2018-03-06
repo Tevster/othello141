@@ -1,6 +1,7 @@
 #include "player.hpp"
-#include <vector>
+#include <time.h>
 
+#define DEPTH 2
 /*
  * Constructor for the player; initialize everything here. The side your AI is
  * on (BLACK or WHITE) is passed in as "side". The constructor must finish
@@ -11,6 +12,11 @@ Player::Player(Side side) {
     testingMinimax = false;
     board = new Board();
     playerside = side;
+    if(playerside == BLACK){
+        opside = WHITE;
+    } else {
+        opside = BLACK;
+    }
     /*
      * TODO: Do any initialization you need to do here (setting up the board,
      * precalculating things, etc.) However, remember that you will only have
@@ -22,8 +28,25 @@ Player::Player(Side side) {
  * Destructor for the player.
  */
 Player::~Player() {
+    delete board;
 }
 
+std::vector<Move* > *Player::getMoves(Board* b, Side side) {
+    std::vector<Move* > *validmoves = new std::vector<Move*>;
+    for(int x = 0; x < 8; x++){
+		for(int y = 0; y < 8; y++){
+			Move *possiblemove = new Move(x, y);
+			if(b-> checkMove(possiblemove, side)){
+				validmoves->push_back(possiblemove);
+			}
+		}
+	}
+    return validmoves;
+}
+
+void Player::setBoard(Board *b) {
+    board = b;
+}
 /*
  * Compute the next move given the opponent's last move. Your AI is
  * expected to keep track of the board on its own. If this is the first move,
@@ -38,67 +61,109 @@ Player::~Player() {
  * return nullptr.
  */
 Move *Player::doMove(Move *opponentsMove, int msLeft) {
-    /*
-     * TODO: Implement how moves your AI should play here. You should first
-     * process the opponent's opponents move before calculating your own move
-     */
-
-	// TODO: ADD TIMER
-	std::vector<Move *> validmoves;
-	int bestmovevalue = -64;
+	time_t start;
+    time(&start);
+	std::vector<Move *> *validmoves;
+	int bestmini = -64;
 	int bestindex;
 
 	if(opponentsMove != nullptr){
-		if(playerside == BLACK){
-			board -> doMove(opponentsMove, WHITE);
-		}
-		else
-			board -> doMove(opponentsMove, BLACK);
+			board -> doMove(opponentsMove, opside);
 	}
-
-	for(int x = 0; x < 8; x++){
-		for(int y = 0; y < 8; y++){
-			Move *possiblemove = new Move(x, y);
-			if(board -> checkMove(possiblemove, playerside)){
-				validmoves.push_back(possiblemove);
-			}
-		}
-	}
-
-	if(validmoves.size() > 0){
-		for(unsigned int i = 0; i < validmoves.size(); i++){
-			Move *aruberuto = validmoves[i];
-			if(board -> score(playerside, aruberuto) > bestmovevalue){
-				bestmovevalue = board -> score(playerside, aruberuto);
+    validmoves = getMoves(board, playerside);
+	if(validmoves->size() > 0){
+		for(unsigned int i = 0; i < validmoves->size(); i++){
+            time_t timer;
+            time(&timer);
+            if (difftime(timer, start) *1000.0 > msLeft - 15000.0 && msLeft > 0)
+                return (*validmoves)[0];
+			Move *aruberuto = (*validmoves)[i];
+            int min = 64;
+            Board *nextBoard = board->copy();
+            nextBoard -> doMove(aruberuto, playerside);
+            int minSc = minScore(nextBoard, &min, 1);
+            //minSc *= nextBoard->bonusFactor(aruberuto);
+            delete nextBoard;
+			if(minSc > bestmini){
+				bestmini = minSc;
 				bestindex = i;
 			}
 		}
-		Move *bestmove = validmoves[bestindex];
-		board -> doMove(bestmove, playerside);
+		Move *bestmove = (*validmoves)[bestindex];
+		board -> doMove(bestmove, playerside);   
 		return bestmove;
 	}
 
     return nullptr;
 }
 
+int Player::minScore(Board *b, int *min, int currDepth) {
+    std::vector<Move *> *opMoves = getMoves(b, opside);
+    if (testingMinimax) {
+        for(unsigned int i = 0; i < opMoves->size(); i++){
+            Move *m = (*opMoves)[i];
 
-/* Minimax outline:
- * max = -99999
- * bestMove = null;
- * for move in posibMoves:
- *     minSc = minScore(move, 99999, 1)
- *     if max < minSc:
- *          max = minSc
- *          bestMove = move
- * return bestMove
- * 
- * minScore(move, min, depth):
- * depth = 0
- * min = 99999
- * if depth < maxDepth:
- *     for pmove in posibMoves:
- *         return minScore(pmove, min, depth+1)
- * else:
- *     if score < min:
- *         return score
- * 
+            Board *opCopy = b->copy();
+            opCopy->doMove(m, opside);
+            int sc = opCopy->score(playerside);
+            
+            if (sc <= *min) {
+                *min = sc;
+            }
+            delete opCopy;
+            delete m;
+        }
+
+        return *min;
+    } else {
+        if (opMoves->size() == 0) {
+            return b->score(playerside);
+        }   
+        if (currDepth == DEPTH) {
+            for(unsigned int i = 0; i < opMoves->size(); i++){
+                Move *m = (*opMoves)[i];
+                Board *opCopy = b->copy();
+                opCopy->doMove(m, opside);
+                int sc = opCopy->score(playerside);
+                if (sc <= *min) {
+                    *min = sc;
+                }
+                delete opCopy;
+                delete m;
+            }
+            return *min;
+        } else {
+            for(unsigned int i = 0; i < opMoves->size(); i++){
+                Move *m = (*opMoves)[i];
+                Board* opCopy = b->copy();
+                opCopy->doMove(m, opside);
+                int sc = -64;
+                std::vector<Move* > *nextMoves = getMoves(opCopy, playerside);
+                if (nextMoves->size() == 0)
+                    sc = opCopy->score(playerside);
+                for(unsigned int j = 0; j < nextMoves->size(); j++){
+                    Board* nextCopy = opCopy->copy();
+                    nextCopy->doMove((*nextMoves)[j], playerside);
+                    int minSc = minScore(nextCopy, min, currDepth + 1);
+                    if (minSc >= sc) 
+                        sc = minSc;
+                    delete nextCopy;
+                    delete (*nextMoves)[j];
+                }
+                if (sc <= *min) {
+                    *min = sc;
+                }
+                delete opCopy;
+                delete m;
+            }
+
+            return *min;
+            
+        }
+        
+    }
+
+}
+
+
+
