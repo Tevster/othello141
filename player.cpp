@@ -78,11 +78,10 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
             if (difftime(timer, start) *1000.0 > msLeft - 15000.0 && msLeft > 0)
                 return (*validmoves)[0];
 			Move *aruberuto = (*validmoves)[i];
-            int min = 64;
             Board *nextBoard = board->copy();
             nextBoard -> doMove(aruberuto, playerside);
-            int minSc = minScore(nextBoard, &min, 1);
-            //minSc *= nextBoard->bonusFactor(aruberuto);
+            int minSc = minScore(nextBoard, 1);
+            minSc *= nextBoard->bonusFactor(aruberuto);
             delete nextBoard;
 			if(minSc > bestmini){
 				bestmini = minSc;
@@ -97,9 +96,10 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
     return nullptr;
 }
 
-int Player::minScore(Board *b, int *min, int currDepth) {
+int Player::minScore(Board *b, int currDepth) {
     std::vector<Move *> *opMoves = getMoves(b, opside);
     if (testingMinimax) {
+        int min = 64;
         for(unsigned int i = 0; i < opMoves->size(); i++){
             Move *m = (*opMoves)[i];
 
@@ -107,32 +107,34 @@ int Player::minScore(Board *b, int *min, int currDepth) {
             opCopy->doMove(m, opside);
             int sc = opCopy->score(playerside);
             
-            if (sc <= *min) {
-                *min = sc;
+            if (sc <= min) {
+                min = sc;
             }
             delete opCopy;
             delete m;
         }
 
-        return *min;
+        return min;
     } else {
         if (opMoves->size() == 0) {
             return b->score(playerside);
         }   
         if (currDepth == DEPTH) {
+            int min = 64;
             for(unsigned int i = 0; i < opMoves->size(); i++){
                 Move *m = (*opMoves)[i];
                 Board *opCopy = b->copy();
                 opCopy->doMove(m, opside);
                 int sc = opCopy->score(playerside);
-                if (sc <= *min) {
-                    *min = sc;
+                if (sc <= min) {
+                    min = sc;
                 }
                 delete opCopy;
                 delete m;
             }
-            return *min;
+            return min;
         } else {
+            int min = 64;
             for(unsigned int i = 0; i < opMoves->size(); i++){
                 Move *m = (*opMoves)[i];
                 Board* opCopy = b->copy();
@@ -144,20 +146,20 @@ int Player::minScore(Board *b, int *min, int currDepth) {
                 for(unsigned int j = 0; j < nextMoves->size(); j++){
                     Board* nextCopy = opCopy->copy();
                     nextCopy->doMove((*nextMoves)[j], playerside);
-                    int minSc = minScore(nextCopy, min, currDepth + 1);
+                    int minSc = minScore(nextCopy, currDepth + 1);
                     if (minSc >= sc) 
                         sc = minSc;
                     delete nextCopy;
                     delete (*nextMoves)[j];
                 }
-                if (sc <= *min) {
-                    *min = sc;
+                if (sc <= min) {
+                    min = sc;
                 }
                 delete opCopy;
                 delete m;
             }
 
-            return *min;
+            return min;
             
         }
         
