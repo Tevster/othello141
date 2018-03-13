@@ -15,7 +15,7 @@ public:
     void setBoard(Board *b);
     Move *doMove(Move *opponentsMove, int msLeft);
     int minScore(Board *b, int currDepth);
-    std::vector<Move* > *getMoves(Board* b, Side side);
+    std::vector<Move* > getMoves(Board* b, Side side);
 
     // Flag to tell if the player is running within the test_minimax context
     bool testingMinimax;
